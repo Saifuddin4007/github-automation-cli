@@ -15,6 +15,9 @@ async function runWorkFlow(options){
     if(!gitService.isGitRepository()){
         console.log("Initialising git repo.......");
         gitService.initializeRepo();
+
+        console.log("Setting main branch.......");
+        gitService.ensureMainBranch();
     }
 
     //!STEP-2: STAGE FILES
