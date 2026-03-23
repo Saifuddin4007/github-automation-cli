@@ -15,13 +15,13 @@ function startParser(){
     .argument("<message>", "Commit Message")
     .option("--private", "Create private repository")
     .action(
-        (msg, options)=>{
+        async (msg, options)=>{
             const workflowOptions={
                 message: msg,
                 private: options.private || false
             };
 
-            runWorkFlow(workflowOptions);
+            await runWorkFlow(workflowOptions);
         }
     );
 
