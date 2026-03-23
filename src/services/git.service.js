@@ -17,12 +17,18 @@ function stageAll(){
 
 function commit(msg){
     try{
-        execSync(`git commit -m "${msg}" `, {stdio:"inherit"});
+        const output= execSync(`git commit -m "${msg}" `, {encoding:'utf-8'});
+        console.log(output); //Manually Print
         return {committed: true};
     }catch(err){
-        const errorOutput= err.stderr?.toString() || "";
+        const errorOutput= err.stderr?.toString() || 
+                            err.stdout?.toString() ||
+                            "";
+                
+        console.log(errorOutput); //show git message
+        
         if(errorOutput.includes("nothing to commit")){
-            return {committed: false, message: "No changes to commit"};
+            return {committed: false};
         }
         throw new Error(`Git Commit Failed: ${errorOutput}`);
     }
@@ -54,6 +60,14 @@ function runCommand(command){
     }
 }
 
+function ensureMainBranch(){
+    try{
+        execSync("git branch -M main", {stdio:"inherit"});
+    }catch(err){
+        throw new Error("Failed to set main branch");
+    }
+}
+
 module.exports= {
     isGitRepository,
     initializeRepo,
@@ -61,5 +75,6 @@ module.exports= {
     commit,
     remoteExists,
     addRemote,
-    push
+    push,
+    ensureMainBranch
 }
