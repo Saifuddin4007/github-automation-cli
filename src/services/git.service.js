@@ -35,10 +35,10 @@ function commit(msg){
 }
 
 
-function remoteExists(){
+function remoteExists(remoteName="origin"){
     try{
         const output= execSync("git remote").toString().trim();
-        return output.includes("origin");
+        return output.split("\n").includes(remoteName);
     }catch(err){
         return false;
     }
@@ -67,6 +67,9 @@ function ensureMainBranch(){
         throw new Error("Failed to set main branch");
     }
 }
+
+
+
 
 module.exports= {
     isGitRepository,
