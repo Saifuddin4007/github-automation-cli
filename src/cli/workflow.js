@@ -1,3 +1,4 @@
+const path= require("path");
 const gitService= require("../services/git.service");
 const tokenService= require("../services/token.service");
 const GitHubService= require("../services/github.service");
@@ -35,8 +36,19 @@ async function runWorkFlow(options){
 
     console.log("Commit created Successfully");
 
+    //!STEP-4: CHECK REMOTE
+    const hasRemote= gitService.remoteExists("origin");
 
-    //!github Auth Part
+    if(hasRemote){
+        console.log("Remote already exists. Skipping Github repo creation.");
+        return;
+
+    }
+
+
+
+
+    //!STEP-5: github Auth Part
     console.log("Validating Github token.....");
 
     const token= await tokenService.getToken();
@@ -48,6 +60,27 @@ async function runWorkFlow(options){
     console.log(`Authenticated as ${user.login}`);
 
 
+    //!STEP-6: CREATE REPO
+    const repoName= path.basename(process.cwd());
+
+    console.log(`Creating Github repo: ${repoName}`);
+
+    const repo= await github.createRepository({
+        name: repoName,
+        private: isPrivate
+    });
+
+    if(repo.created){
+        console.log("Repo created successfully");
+    }else{
+        console.log("Repo already exists on Github");
+    }
+
+    //!STEP-7: ADD REMOTE
+    console.log("Adding remote origin......");
+    gitService.addRemote(repo.cloneUrl);
+
+    console.log("Remote added siuccessfully");
 
 }
 
