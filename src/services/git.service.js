@@ -44,12 +44,25 @@ function remoteExists(remoteName="origin"){
     }
 }
 
-function addRemote(url){
-    runCommand(`git remote add origin ${url}`);
+function addRemote(url, token){
+    const authenticatedUrl= url.replace(
+        "https://",
+        `https://${token}@`
+    )
+    runCommand(`git remote add origin ${authenticatedUrl}`);
 }
 
-function push(){
-    runCommand("git push -u origin main");
+function push(remote='origin', branch='main'){
+    try{
+        execSync(`git push -u ${remote} ${branch}`, {
+            stdio:"inherit"
+        });
+
+    }catch(err){
+        const errorOutput= err.stdout?.toString() || err.stderr?.toString() || "";
+        throw new Error(`Git Push Failed: ${errorOutput}`);
+    }
+
 }
 
 function runCommand(command){
