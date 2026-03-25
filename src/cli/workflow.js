@@ -78,9 +78,14 @@ async function runWorkFlow(options){
 
     //!STEP-7: ADD REMOTE
     console.log("Adding remote origin......");
-    gitService.addRemote(repo.cloneUrl);
+    gitService.addRemote(repo.cloneUrl, token);
 
-    console.log("Remote added siuccessfully");
+    console.log("Remote added successfully");
+
+    //!STEP-8: PUSH
+    console.log("Pushing to Github.....");
+    gitService.push("origin", "main");
+    console.log("Pushed to Github successfully");
 
 }
 
