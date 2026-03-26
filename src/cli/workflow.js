@@ -2,45 +2,46 @@ const path= require("path");
 const gitService= require("../services/git.service");
 const tokenService= require("../services/token.service");
 const GitHubService= require("../services/github.service");
+const logger= require('../utils/logger');
 
 async function runWorkFlow(options){
     const {message, private: isPrivate} = options;
 
-    console.log("Commit message received:", message);
-    console.log("Private repo flag:", isPrivate);
+    // console.log("Commit message received:", message);
+    // console.log("Private repo flag:", isPrivate);
 
     //!git Part
-    console.log("Starting Git Workflow.........");
+    logger.info("Starting Git workflow...");
 
     //!step-1: CHECK REPO
     if(!gitService.isGitRepository()){
-        console.log("Initialising git repo.......");
+        logger.info("Initialising Git repo...");
         gitService.initializeRepo();
 
-        console.log("Setting main branch.......");
+        logger.info("Setting main branch...");
         gitService.ensureMainBranch();
     }
 
     //!STEP-2: STAGE FILES
-    console.log("Staging files.......");
+    logger.info("Staging Files...");
     gitService.stageAll();
 
 
     //!STEP-3: COMMIT
-    console.log("Creating Commit.......");
+    logger.info("Creating Commit...");
     const res= gitService.commit(message);
     if(!res.committed){
-        console.log("Nothing to commit....");
+        logger.warn("Nothing to commit...");
         return;
     }
 
-    console.log("Commit created Successfully");
+    logger.info("Commit created successfully...");
 
     //!STEP-4: CHECK REMOTE
     const hasRemote= gitService.remoteExists("origin");
 
     if(hasRemote){
-        console.log("Remote already exists. Skipping Github repo creation.");
+        logger.warn("Remote already exists. Skipping Github repo creation.");
         return;
 
     }
@@ -49,7 +50,7 @@ async function runWorkFlow(options){
 
 
     //!STEP-5: github Auth Part
-    console.log("Validating Github token.....");
+    logger.info("Validating Github token...");
 
     const token= await tokenService.getToken();
 
@@ -71,21 +72,21 @@ async function runWorkFlow(options){
     });
 
     if(repo.created){
-        console.log("Repo created successfully");
+        logger.info("Repo created successfully");
     }else{
-        console.log("Repo already exists on Github");
+        logger.warn("Repo already exists on Github");
     }
 
     //!STEP-7: ADD REMOTE
-    console.log("Adding remote origin......");
+    logger.info("Adding remote origin...");
     gitService.addRemote(repo.cloneUrl, token);
 
-    console.log("Remote added successfully");
+    logger.info("Remote added successfully");
 
     //!STEP-8: PUSH
-    console.log("Pushing to Github.....");
+    logger.info("Pushing to Github...");
     gitService.push("origin", "main");
-    console.log("Pushed to Github successfully");
+    logger.info("Pushed to Github successfully");
 
 }
 
