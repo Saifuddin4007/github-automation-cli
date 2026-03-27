@@ -5,7 +5,8 @@ const GitHubService= require("../services/github.service");
 const logger= require('../utils/logger');
 
 async function runWorkFlow(options){
-    const {message, private: isPrivate} = options;
+    try{
+        const {message, private: isPrivate} = options;
 
     // console.log("Commit message received:", message);
     // console.log("Private repo flag:", isPrivate);
@@ -35,7 +36,7 @@ async function runWorkFlow(options){
         return;
     }
 
-    logger.info("Commit created successfully...");
+    logger.success("Commit created successfully...");
 
     //!STEP-4: CHECK REMOTE
     const hasRemote= gitService.remoteExists("origin");
@@ -58,13 +59,13 @@ async function runWorkFlow(options){
 
     const user= await github.getAuthenticatedUser();
 
-    console.log(`Authenticated as ${user.login}`);
+    logger.success(`Authenticated as ${user.login}`);
 
 
     //!STEP-6: CREATE REPO
     const repoName= path.basename(process.cwd());
 
-    console.log(`Creating Github repo: ${repoName}`);
+    logger.success(`Creating Github repo: ${repoName}`);
 
     const repo= await github.createRepository({
         name: repoName,
@@ -72,7 +73,7 @@ async function runWorkFlow(options){
     });
 
     if(repo.created){
-        logger.info("Repo created successfully");
+        logger.success("Repo created successfully");
     }else{
         logger.warn("Repo already exists on Github");
     }
@@ -81,12 +82,17 @@ async function runWorkFlow(options){
     logger.info("Adding remote origin...");
     gitService.addRemote(repo.cloneUrl, token);
 
-    logger.info("Remote added successfully");
+    logger.success("Remote added successfully");
 
     //!STEP-8: PUSH
     logger.info("Pushing to Github...");
     gitService.push("origin", "main");
-    logger.info("Pushed to Github successfully");
+    logger.success("Pushed to Github successfully");
+    }catch(err){
+        const logger= require("../utils/logger");
+        logger.error(err.message);
+        process.exit(1);
+    }
 
 }
 
