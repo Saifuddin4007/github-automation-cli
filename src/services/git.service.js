@@ -1,4 +1,4 @@
-const {execSync}= require("child_process");
+const {execSync, spawnSync}= require("child_process");
 const fs= require("fs");
 const path= require("path");
 
@@ -12,25 +12,41 @@ function initializeRepo(){
 }
 
 function stageAll(){
-    runCommand("git add .");
+    runCommand("git add .", {stdio:"inherit"});
 }
 
 function commit(msg){
     try{
-        const output= execSync(`git commit -m "${msg}" `, {encoding:'utf-8'});
-        console.log(output); //Manually Print
+        // const output= execSync(`git commit -m "${msg}"`, {encoding:'utf-8'});
+        const output= spawnSync("git", ["commit", "-m", msg], {encoding:'utf-8'});
+        // console.log(output); //Manually Print
+
+        if(output.stdout) process.stdout.write(output.stdout);
+        if(output.stderr) process.stderr.write(output.stderr);
+
+        if(output.status !== 0){
+            const errorOutput= output.stderr || output.stdout || "";
+            if(errorOutput.includes("nothing to commit")){
+                return {committed: false};
+            }
+            throw new Error(`Git Commit Failed: ${errorOutput}`);
+
+        }
         return {committed: true};
     }catch(err){
-        const errorOutput= err.stderr?.toString() || 
-                            err.stdout?.toString() ||
-                            "";
+        //todo: OLD Codes with execSync, can be removed after testing
+        // const errorOutput= err.stderr?.toString() || 
+        //                     err.stdout?.toString() ||
+        //                     "";
                 
-        console.log(errorOutput); //show git message
+        // console.log(errorOutput); //show git message
         
-        if(errorOutput.includes("nothing to commit")){
-            return {committed: false};
-        }
-        throw new Error(`Git Commit Failed: ${errorOutput}`);
+        // if(errorOutput.includes("nothing to commit")){
+        //     return {committed: false};
+        // }
+        // throw new Error(`Git Commit Failed: ${errorOutput}`);
+
+        throw new Error(`Unexpected Git Error: ${err.message}`);
     }
 }
 
