@@ -71,6 +71,16 @@ class GitHubService {
         }
 
     }
+
+    async deleteRepository(owner, repo){
+        try{
+            await this.client.delete(`/repos/${owner}/${repo}`);
+            
+        }
+        catch(err){
+            throw new Error ('Failed to rollback repository');
+        }
+    }
 }
 
 module.exports= GitHubService;
