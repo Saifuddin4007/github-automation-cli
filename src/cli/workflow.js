@@ -4,6 +4,12 @@ const tokenService= require("../services/token.service");
 const GitHubService= require("../services/github.service");
 const logger= require('../utils/logger');
 
+let repoCreated= false;
+let repoOwner= null;
+let repoName= null;
+
+
+
 async function runWorkFlow(options){
     try{
         const {message, private: isPrivate} = options;
@@ -63,7 +69,7 @@ async function runWorkFlow(options){
 
 
     //!STEP-6: CREATE REPO
-    const repoName= path.basename(process.cwd());
+    repoName= path.basename(process.cwd());
 
     logger.success(`Creating Github repo: ${repoName}`);
 
@@ -71,6 +77,9 @@ async function runWorkFlow(options){
         name: repoName,
         private: isPrivate
     });
+    repoName= repo.name; //update with actual repo name from github (in case of any formatting changes)
+    repoCreated= repo.created;
+    repoOwner= repo.owner;
 
     if(repo.created){
         logger.success("Repo created successfully");
@@ -85,9 +94,23 @@ async function runWorkFlow(options){
     logger.success("Remote added successfully");
 
     //!STEP-8: PUSH
-    logger.info("Pushing to Github...");
-    gitService.push("origin", "main");
-    logger.success("Pushed to Github successfully");
+    try{
+        logger.info("Pushing to Github...");
+        gitService.push("origin", "main");
+        logger.success("Pushed to Github successfully");
+    }catch(err){
+        logger.error("Push Failed");
+
+        //*ROLLBACK
+        if(repoCreated){
+            logger.warn("Rolling back Github repo...");
+
+            await github.deleteRepository(repoOwner, repoName);
+
+            logger.success("Repository deleted, ROLLBACK successful");
+        }
+        throw err; //rethrow to be caught by outer catch
+    }
     }catch(err){
         const logger= require("../utils/logger");
         logger.error(err.message);
