@@ -4,13 +4,13 @@ const tokenService= require("../services/token.service");
 const GitHubService= require("../services/github.service");
 const logger= require('../utils/logger');
 
-let repoCreated= false;
-let repoOwner= null;
-let repoName= null;
-
-
 
 async function runWorkFlow(options){
+
+    let repoCreated= false;
+    let repoOwner= null;
+    let repoName= null;
+
     try{
         const {message, private: isPrivate} = options;
 
@@ -38,25 +38,15 @@ async function runWorkFlow(options){
     logger.info("Creating Commit...");
     const res= gitService.commit(message);
     if(!res.committed){
-        logger.warn("Nothing to commit...");
-        return;
+        logger.warn("Nothing to commit...");    
+    }
+    else{
+        logger.success("Commit created successfully...");
     }
 
-    logger.success("Commit created successfully...");
+    
 
-    //!STEP-4: CHECK REMOTE
-    const hasRemote= gitService.remoteExists("origin");
-
-    if(hasRemote){
-        logger.warn("Remote already exists. Skipping Github repo creation.");
-        return;
-
-    }
-
-
-
-
-    //!STEP-5: github Auth Part
+    //!STEP-4: github Auth Part
     logger.info("Validating Github token...");
 
     const token= await tokenService.getToken();
@@ -68,32 +58,68 @@ async function runWorkFlow(options){
     logger.success(`Authenticated as ${user.login}`);
 
 
-    //!STEP-6: CREATE REPO
-    repoName= path.basename(process.cwd());
+    //!STEP-5: CHECK REMOTE
+    const hasRemote= gitService.remoteExists("origin");
 
-    logger.success(`Creating Github repo: ${repoName}`);
+    //! IF NO REMOTE EXISTS, CREATE REPO AND ADD REMOTE
+    if(!hasRemote){
+        repoName= path.basename(process.cwd());
+        logger.info(`Creating Github repo: ${repoName}`);
 
-    const repo= await github.createRepository({
-        name: repoName,
-        private: isPrivate
-    });
-    repoName= repo.name; //update with actual repo name from github (in case of any formatting changes)
-    repoCreated= repo.created;
-    repoOwner= repo.owner;
+        const repo= await github.createRepository({
+            name: repoName,
+            private: isPrivate
+        });
 
-    if(repo.created){
-        logger.success("Repo created successfully");
+        repoName= repo.name; //update with actual repo name from github (in case of any formatting changes)
+        repoCreated= repo.created;
+        repoOwner= repo.owner;
+
+
+        if(repo.created){
+            logger.success("Repo created successfully");
+        }else{
+            logger.warn("Repo already exists on Github");
+        }
+
+        //! ADD REMOTE
+        logger.info("Adding remote origin...");
+        gitService.addRemote(repo.cloneUrl, token);
+        logger.success("Remote added successfully");
+
     }else{
-        logger.warn("Repo already exists on Github");
+        logger.info("Remote origin already exists, skipping repo creation...");
     }
 
-    //!STEP-7: ADD REMOTE
-    logger.info("Adding remote origin...");
-    gitService.addRemote(repo.cloneUrl, token);
+    //!OLD CODES 
+    // CREATE REPO
+    // repoName= path.basename(process.cwd());
 
-    logger.success("Remote added successfully");
+    // logger.success(`Creating Github repo: ${repoName}`);
 
-    //!STEP-8: PUSH
+    // const repo= await github.createRepository({
+    //     name: repoName,
+    //     private: isPrivate
+    // });
+    // repoName= repo.name; //update with actual repo name from github (in case of any formatting changes)
+    // repoCreated= repo.created;
+    // repoOwner= repo.owner;
+
+    // if(repo.created){
+    //     logger.success("Repo created successfully");
+    // }else{
+    //     logger.warn("Repo already exists on Github");
+    // }
+
+    //ADD REMOTE
+    // logger.info("Adding remote origin...");
+    // gitService.addRemote(repo.cloneUrl, token);
+
+    // logger.success("Remote added successfully");
+
+
+
+    //!STEP-6: PUSH
     try{
         logger.info("Pushing to Github...");
         gitService.push("origin", "main");
