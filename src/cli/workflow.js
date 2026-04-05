@@ -145,4 +145,106 @@ async function runWorkFlow(options){
 
 }
 
-module.exports= runWorkFlow;
+//!MULTI-COMMANDs WORKFLOW
+
+async function runFullWorkflow(options){
+    return runWorkFlow(options);
+}
+
+
+
+async function runCommitOnly(options){
+    const {message, files}= options;
+
+    logger.info("Running commit only...");
+
+    if(!gitService.isGitRepository()){
+        logger.info("Initializing git repo...");
+        gitService.initializeRepo();
+        gitService.ensureMainBranch();
+    }
+
+    //perticular files can be added logic
+    if(files && files.length>0){
+        logger.info("Staging selected files...");
+        gitService.stageFiles(files);
+    }
+    else{
+        logger.info("Staging all files...");
+        gitService.stageAll();
+    }
+
+    logger.info("Creating commit...");
+    const res= gitService.commit(message);
+
+    if(!res.committed){
+        logger.warn("Nothing to commit...");
+    }
+    else{
+        logger.success("Commit created successfully...");
+    }
+}
+
+
+async function runPushOnly(){
+    logger.info("Running push only...");
+
+    if(!gitService.isGitRepository()){
+        throw new Error("Not a git repo. Run 'mygit init' first.")
+    }
+
+    const hasRemote= gitService.remoteExists("origin");
+    if(!hasRemote){
+        throw new Error("No remote found. \n'mygit init' first OR use 'mygit \"message\"' for full automation");
+    }
+
+    try{
+        gitService.push("origin", "main");
+        logger.success("Pushed to Github successfully");
+    }catch(err){
+        logger.error("Push failed");
+        throw err;
+    }
+}
+
+
+
+
+async function runInitOnly(options){
+    const {private: isPrivate}= options;
+
+    logger.info("Running init only...");
+
+    if(!gitService.isGitRepository()){
+        gitService.initializeRepo();
+        gitService.ensureMainBranch();
+    }
+
+    const hasRemote= gitService.remoteExists("origin");
+    if(hasRemote){
+        logger.warn("Remote already exists");
+        return;
+    }
+
+    const token= await tokenService.getToken();
+    const github= new GitHubService(token);
+    const user= await github.getAuthenticatedUser();
+    logger.success(`Authenticated as ${user.login}`);
+
+    const repoName= path.basename(process.cwd());
+
+    const repo= await github.createRepository({
+        name: repoName,
+        private: isPrivate
+    });
+    gitService.addRemote(repo.cloneUrl, token);
+    logger.success("Repository initialized and remote added successfully");
+}
+
+
+module.exports= {
+    runFullWorkflow,
+    runCommitOnly,
+    runPushOnly,
+    runInitOnly
+}
