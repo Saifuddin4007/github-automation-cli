@@ -97,6 +97,14 @@ function ensureMainBranch(){
     }
 }
 
+function stageFiles(files){
+    if(!Array.isArray(files) || files.length===0){
+        throw new Error("No files specified for staging");
+    }
+    const fileList= files.map(f => `"${f}"`).join(" ");
+    runCommand(`git add ${fileList}`);
+}
+
 
 
 
@@ -108,5 +116,6 @@ module.exports= {
     remoteExists,
     addRemote,
     push,
-    ensureMainBranch
+    ensureMainBranch,
+    stageFiles
 }
