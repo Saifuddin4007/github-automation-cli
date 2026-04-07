@@ -1,7 +1,6 @@
 const readline = require('readline');
 const keytar= require('keytar');
-const dotenv = require('dotenv');
-dotenv.config();
+
 
 const SERVICE_NAME= "mygit-cli";
 const ACCOUNT_NAME= "github-token";
